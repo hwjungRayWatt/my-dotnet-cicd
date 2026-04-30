@@ -2,23 +2,42 @@ name: GitHub Actions
 
 on:
   push:
-    branches: [ "main" ]   # main 브랜치에 Push할 때 자동 실행
+    branches: [ "main" ]
 
 jobs:
   build:
-    runs-on: windows-latest   # WPF는 Windows에서만 빌드 가능!
+    runs-on: windows-latest
 
     steps:
       - name: 코드 가져오기
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
-      - name: .NET 설치          # GitHub 서버는 매번 새로 켜지므로 필수!
-        uses: actions/setup-dotnet@v4
+      - name: .NET 설치
+        uses: actions/setup-dotnet@v4.3.1
         with:
           dotnet-version: 8.0.x
 
-      - name: 빌드
-        run: dotnet build TEST/TEST.csproj
+      - name: 빌드 (로그 저장)
+        run: dotnet build TEST/TEST.csproj 2>&1 | Tee-Object -FilePath build.log
+        continue-on-error: true
+
+      - name: 빌드 성공 여부 확인
+        run: |
+          if (Select-String -Path build.log -Pattern "Error") {
+            Write-Error "빌드 실패 감지!"
+            exit 1
+          }
+
+      # ← 여기 추가!
+      - name: 유닛 테스트 실행
+        run: dotnet test Tests/Tests.csproj --logger "trx;LogFileName=test-results.trx"
+        continue-on-error: true
+
+      - name: 테스트 결과 저장
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: test-results
+          path: "**/*.trx"
 
       - name: 패키지 생성
         run: |
@@ -35,13 +54,20 @@ jobs:
           Write-Host "검증 통과! patch.zip 존재 확인됨"
 
       - name: 빌드 결과물 저장
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: build-output
           path: output/patch.zip
 
+      - name: 에러 로그 저장 (실패 시)
+        if: failure()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: build-log
+          path: build.log
+
       - name: 릴리즈 생성
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.1
         with:
           tag_name: release-${{ github.run_number }}
           name: "Release #${{ github.run_number }}"
@@ -57,7 +83,7 @@ jobs:
 
     steps:
       - name: 성공 메일 발송
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
           server_port: 587
@@ -67,7 +93,7 @@ jobs:
           to: junghw86@gmail.com, junghw86@naver.com
           from: junghw86@gmail.com
           body: |
-            빌드가 성공적으로 완료되었습니다! 🎉
+            빌드 및 테스트가 성공적으로 완료되었습니다! 🎉
 
             ━━━━━━━━━━━━━━━━━━━━━━━━
             저장소: ${{ github.repository }}
@@ -87,8 +113,27 @@ jobs:
     if: failure()
 
     steps:
+      - name: 빌드 로그 다운로드
+        uses: actions/download-artifact@v4
+        with:
+          name: build-log
+        continue-on-error: true
+
+      - name: 에러 로그 읽기
+        id: read_log
+        run: |
+          if [ -f build.log ]; then
+            ERROR_LOG=$(grep -i "error" build.log | head -20 || echo "로그 파싱 실패")
+            echo "error_log<<EOF" >> $GITHUB_OUTPUT
+            echo "$ERROR_LOG" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "error_log=로그 파일을 찾을 수 없습니다." >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
       - name: 실패 메일 발송
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
           server_port: 587
@@ -98,7 +143,7 @@ jobs:
           to: junghw86@gmail.com, junghw86@naver.com
           from: junghw86@gmail.com
           body: |
-            빌드가 실패했습니다. 확인이 필요합니다! 🚨
+            빌드 또는 테스트가 실패했습니다! 🚨
 
             ━━━━━━━━━━━━━━━━━━━━━━━━
             저장소: ${{ github.repository }}
@@ -107,5 +152,8 @@ jobs:
             작성자: ${{ github.actor }}
             ━━━━━━━━━━━━━━━━━━━━━━━━
 
-            🔍 실패 로그 바로 확인:
+            🔍 에러 내용:
+            ${{ steps.read_log.outputs.error_log }}
+
+            📋 전체 로그 확인:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
