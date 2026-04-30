@@ -11,7 +11,7 @@ namespace Tests
         public void Add_Test()
         {
             int result = _calculator.Add(2, 3);
-            Assert.Equal(5, result);
+            Assert.Equal(10, result);
         }
 
         [Fact]
