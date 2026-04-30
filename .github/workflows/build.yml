@@ -2,17 +2,17 @@ name: GitHub Actions
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" ]   # main 브랜치에 Push할 때 자동 실행
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-latest   # WPF는 Windows에서만 빌드 가능!
 
     steps:
       - name: 코드 가져오기
         uses: actions/checkout@v4
 
-      - name: .NET 설치
+      - name: .NET 설치          # GitHub 서버는 매번 새로 켜지므로 필수!
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -69,10 +69,16 @@ jobs:
           body: |
             빌드가 성공적으로 완료되었습니다! 🎉
 
+            ━━━━━━━━━━━━━━━━━━━━━━━━
             저장소: ${{ github.repository }}
+            브랜치: ${{ github.ref_name }}
             커밋: ${{ github.sha }}
+            작성자: ${{ github.actor }}
             릴리즈: Release #${{ github.run_number }}
-            결과 확인: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            ━━━━━━━━━━━━━━━━━━━━━━━━
+
+            🔍 결과 확인:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   # ❌ 실패 메일
   notify-failure:
@@ -94,6 +100,12 @@ jobs:
           body: |
             빌드가 실패했습니다. 확인이 필요합니다! 🚨
 
+            ━━━━━━━━━━━━━━━━━━━━━━━━
             저장소: ${{ github.repository }}
+            브랜치: ${{ github.ref_name }}
             커밋: ${{ github.sha }}
-            실패 로그 확인: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            작성자: ${{ github.actor }}
+            ━━━━━━━━━━━━━━━━━━━━━━━━
+
+            🔍 실패 로그 바로 확인:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
