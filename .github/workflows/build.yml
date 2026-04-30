@@ -1,0 +1,27 @@
+name: .NET Build & Test
+
+on:
+  push:
+    branches: [ "main" ]   # main에 Push할 때 자동 실행
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # GitHub 클라우드 서버 사용
+
+    steps:
+      - name: 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: .NET 설치
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 빌드
+        run: dotnet build MyApp/MyApp.csproj
+
+      - name: 빌드 결과물 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: MyApp/bin/
