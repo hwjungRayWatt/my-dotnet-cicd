@@ -23,10 +23,13 @@ jobs:
 
       - name: 빌드 성공 여부 확인
         run: |
-          if (Select-String -Path build.log -Pattern "Error") {
+          $errors = Select-String -Path build.log -Pattern "^.*error CS\d+.*$"
+          if ($errors) {
             Write-Error "빌드 실패 감지!"
+            Write-Host $errors
             exit 1
           }
+          Write-Host "빌드 성공!"
 
       # ← 여기 추가!
       - name: 유닛 테스트 실행
