@@ -1,4 +1,4 @@
-name: .NET Build
+name: GitHub Actions
 
 on:
   push:
@@ -53,7 +53,7 @@ jobs:
   notify-success:
     runs-on: ubuntu-latest
     needs: build
-    if: success()        # build job 성공했을 때만 실행
+    if: success()
 
     steps:
       - name: 성공 메일 발송
@@ -64,7 +64,7 @@ jobs:
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "✅ 빌드 성공 - Release #${{ github.run_number }}"
-          to: junghw86@gmail.com
+          to: junghw86@gmail.com, junghw86@naver.com
           from: junghw86@gmail.com
           body: |
             빌드가 성공적으로 완료되었습니다! 🎉
@@ -78,7 +78,7 @@ jobs:
   notify-failure:
     runs-on: ubuntu-latest
     needs: build
-    if: failure()        # build job 실패했을 때만 실행
+    if: failure()
 
     steps:
       - name: 실패 메일 발송
@@ -89,7 +89,7 @@ jobs:
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "❌ 빌드 실패 알림 - Run #${{ github.run_number }}"
-          to: junghw86@gmail.com
+          to: junghw86@gmail.com, junghw86@naver.com
           from: junghw86@gmail.com
           body: |
             빌드가 실패했습니다. 확인이 필요합니다! 🚨
