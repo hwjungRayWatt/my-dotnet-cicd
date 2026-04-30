@@ -1,12 +1,12 @@
-name: .NET Build & Test
+name: .NET Build
 
 on:
   push:
-    branches: [ "main" ]   # main에 Push할 때 자동 실행
+    branches: [ "main" ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # GitHub 클라우드 서버 사용
+    runs-on: windows-latest   # WPF는 Windows에서만 빌드 가능!
 
     steps:
       - name: 코드 가져오기
@@ -18,10 +18,10 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: 빌드
-        run: dotnet build MyApp/MyApp.csproj
+        run: dotnet build TEST/TEST.csproj   # ← 여기 경로 맞춤
 
       - name: 빌드 결과물 저장
         uses: actions/upload-artifact@v4
         with:
           name: build-output
-          path: MyApp/bin/
+          path: TEST/bin/
