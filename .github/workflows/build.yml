@@ -49,10 +49,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ✅ 성공 메일
+  notify-success:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success()        # build job 성공했을 때만 실행
+
+    steps:
+      - name: 성공 메일 발송
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "✅ 빌드 성공 - Release #${{ github.run_number }}"
+          to: junghw86@gmail.com
+          from: junghw86@gmail.com
+          body: |
+            빌드가 성공적으로 완료되었습니다! 🎉
+
+            저장소: ${{ github.repository }}
+            커밋: ${{ github.sha }}
+            릴리즈: Release #${{ github.run_number }}
+            결과 확인: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # ❌ 실패 메일
   notify-failure:
     runs-on: ubuntu-latest
     needs: build
-    if: failure()
+    if: failure()        # build job 실패했을 때만 실행
 
     steps:
       - name: 실패 메일 발송
@@ -60,13 +86,14 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 587
-          username: junghw86@gmail.com
-          password: mrhh gywf yett czab
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
           subject: "❌ 빌드 실패 알림 - Run #${{ github.run_number }}"
           to: junghw86@gmail.com
           from: junghw86@gmail.com
           body: |
-            빌드가 실패했습니다.
+            빌드가 실패했습니다. 확인이 필요합니다! 🚨
+
             저장소: ${{ github.repository }}
             커밋: ${{ github.sha }}
-            확인: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            실패 로그 확인: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
