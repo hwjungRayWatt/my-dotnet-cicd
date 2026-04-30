@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest   # WPF는 Windows에서만 빌드 가능!
+    runs-on: windows-latest
 
     steps:
       - name: 코드 가져오기
@@ -18,10 +18,55 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: 빌드
-        run: dotnet build TEST/TEST.csproj   # ← 여기 경로 맞춤
+        run: dotnet build TEST/TEST.csproj
+
+      - name: 패키지 생성
+        run: |
+          mkdir output
+          Copy-Item -Recurse TEST/bin/Debug/* output/
+          Compress-Archive -Path output/* -DestinationPath output/patch.zip
+
+      - name: 패키지 검증
+        run: |
+          if (!(Test-Path "output/patch.zip")) {
+            Write-Error "patch.zip 생성 실패!"
+            exit 1
+          }
+          Write-Host "검증 통과! patch.zip 존재 확인됨"
 
       - name: 빌드 결과물 저장
         uses: actions/upload-artifact@v4
         with:
           name: build-output
-          path: TEST/bin/
+          path: output/patch.zip
+
+      - name: 릴리즈 생성
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.run_number }}
+          name: "Release #${{ github.run_number }}"
+          files: output/patch.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: build
+    if: failure()
+
+    steps:
+      - name: 실패 메일 발송
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: junghw86@gmail.com
+          password: mrhh gywf yett czab
+          subject: "❌ 빌드 실패 알림 - Run #${{ github.run_number }}"
+          to: junghw86@gmail.com
+          from: junghw86@gmail.com
+          body: |
+            빌드가 실패했습니다.
+            저장소: ${{ github.repository }}
+            커밋: ${{ github.sha }}
+            확인: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
