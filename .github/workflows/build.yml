@@ -34,7 +34,7 @@ jobs:
       # ← 여기 추가!
       - name: 유닛 테스트 실행
         run: dotnet test Tests/Tests.csproj --logger "trx;LogFileName=test-results.trx"
-        continue-on-error: true
+        # continue-on-error: true
 
       - name: 테스트 결과 저장
         uses: actions/upload-artifact@v4.6.2
